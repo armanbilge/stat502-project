@@ -1,5 +1,6 @@
 ---
 title: Stat 502 Project Proposal
+author: Arman Bilge, Cheng Wang, and Zexuan Zhou
 date: November 2, 2016
 ---
 
