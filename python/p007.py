@@ -1,19 +1,19 @@
-# 
+#
 # Solution to Project Euler problem 7
 # by Project Nayuki
-# 
+#
 # https://www.nayuki.io/page/project-euler-solutions
 # https://github.com/nayuki/Project-Euler-solutions
-# 
+#
 
 import eulerlib, itertools, sys
-if sys.version_info.major == 2:
+if sys.version_info[0] == 2:
 	filter = itertools.ifilter
 
 
 # Computers are fast, so we can implement this solution by testing each number
 # individually for primeness, instead of using the more efficient sieve of Eratosthenes.
-# 
+#
 # The algorithm starts with an infinite stream of incrementing integers starting at 2,
 # filters them to keep only the prime numbers, drops the first 10000 items,
 # and finally returns the first item thereafter.

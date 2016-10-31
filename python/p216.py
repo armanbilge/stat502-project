@@ -7,7 +7,7 @@
 # 
 
 import sys
-if sys.version_info.major == 2:
+if sys.version_info[0] == 2:
 	range = xrange
 
 
@@ -66,7 +66,7 @@ if sys.version_info.major == 2:
 #   Therefore the only non-contradictory case is the one where seq(i) is a prime number.
 # 
 # Credits:
-#   My algorithm and proof were written with major help from this document:
+#   My algorithm and proof were written with [0] help from this document:
 #   http://fun-math-problems.googlecode.com/svn/trunk/doc/euler/p216.tex
 def compute():
 	# Produce the entire sequence

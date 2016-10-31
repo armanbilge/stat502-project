@@ -74,7 +74,7 @@ def round_to_decimal(fracnum, places):
 	
 	# Round half to even
 	fracnum *= 10**places
-	if sys.version_info.major == 2:
+	if sys.version_info[0] == 2:
 		rounded = fracnum.numerator // fracnum.denominator
 		frac = fracnum - rounded
 		HALF = fractions.Fraction(1, 2)

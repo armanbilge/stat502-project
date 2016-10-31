@@ -1,13 +1,13 @@
-# 
+#
 # Shared code for solutions to Project Euler problems
 # by Project Nayuki
-# 
+#
 # https://www.nayuki.io/page/project-euler-solutions
 # https://github.com/nayuki/Project-Euler-solutions
-# 
+#
 
 import array, math, sys
-if sys.version_info.major == 2:
+if sys.version_info[0] == 2:
 	range = xrange
 
 
@@ -63,7 +63,7 @@ def list_primes(n):
 def prime_generator(limit):
 	if limit >= 2:
 		yield 2
-	
+
 	# Sieve of Eratosthenes, storing only odd numbers starting at 3
 	isprime = array.array("B", b"\x01" * ((limit - 1) // 2))
 	sieveend = sqrt(limit)
@@ -97,7 +97,7 @@ def binomial(n, k):
 # Returns x^-1 mod m. Note that x * x^-1 mod m = x^-1 * x mod m = 1.
 def reciprocal_mod(x, m):
 	assert 0 <= x < m
-	
+
 	# Based on a simplification of the extended Euclidean algorithm
 	y = x
 	x = m
