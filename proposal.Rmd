@@ -4,6 +4,8 @@ author: Arman Bilge, Cheng Wang, and Zexuan Zhou
 date: November 2, 2016
 ---
 
+\frenchspacing
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(cache = T)
 options(digits = 3)
