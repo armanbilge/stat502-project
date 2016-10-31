@@ -22,8 +22,6 @@ In this study we hope to determine whether the use of a runtime with a JIT compi
 
 ## Pilot study
 
-
-
 ```{r, dev='pdf', fig.cap=''}
 boxplot(df)
 ```
@@ -34,7 +32,12 @@ anova(lm(values ~ ind, data=stack(df)))
 
 ## Proposal for larger experiment
 
-
+We will implement some additional strategies to ensure robustness of our results, starting with performing multiple replicates for each experimental unit.
+As it is challenging to completely control for the state of the computer that we are running the tests on, we expect there to be some noise in our measurements.
+Performing multiple replicate runs for each program should help reduce the effects of this noise on our results.
+Furthermore, it is not straightforward to accurately measure the performance of a runtime using a JIT compiler.
+A method may need to be called hundreds or thousands of times before the JIT compiler determines that it is worth optimizing.
+Because we want to assess the asymptotic performance of the interpreters, we will do several "warm-up" runs of the program we are testing before taking any measurements to provide ample opportunity for the JIT compiler to make its optimizations.
 
 ### Power calculation
 
