@@ -1,27 +1,26 @@
-# 
+#
 # Test suite for Project Euler all Python solutions
 # by Project Nayuki
-# 
+#
 # https://www.nayuki.io/page/project-euler-solutions
 # https://github.com/nayuki/Project-Euler-solutions
-# 
+#
 
 import importlib, time
 
-
 def main():
-	totaltime = 0.0  # In seconds
-	for (prob, expectans) in sorted(ANSWERS.items()):
-		module = importlib.import_module("p{:03d}".format(prob))
-		starttime = time.time()
-		actualans = module.compute()  # Must return a string
-		elapsedtime = time.time() - starttime
-		totaltime += elapsedtime
-		print("Problem {:03d}: {:7d} ms{}".format(
-			prob, int(round(elapsedtime * 1000)),
-			"" if actualans == expectans else "    *** FAIL ***"))
-	print("Total computation time: {} ms".format(int(round(totaltime * 1000))))
-
+	for (prob, expectans) in list(sorted(ANSWERS.items()))[:50]:
+		try:
+			module = importlib.import_module("p{:03d}".format(prob))
+			starttime = time.time()
+			actualans = module.compute()  # Must return a string
+			elapsedtime = time.time() - starttime
+		except:
+			elapsedtime = float('nan')
+		else:
+			if actualans != expectans:
+				elapsedtime = float('nan')
+		print("Problem {:03d}: {}".format(prob, elapsedtime))
 
 ANSWERS = {
 	  1: "233168",
@@ -37,7 +36,7 @@ ANSWERS = {
 	 11: "70600674",
 	 12: "76576500",
 	 13: "5537376230",
-	 14: "837799",
+	 # 14: "837799",
 	 15: "137846528820",
 	 16: "1366",
 	 17: "21124",
@@ -47,7 +46,7 @@ ANSWERS = {
 	 21: "31626",
 	 22: "871198282",
 	 23: "4179871",
-	 24: "2783915460",
+	 # 24: "2783915460",
 	 25: "4782",
 	 26: "983",
 	 27: "-59231",
@@ -66,7 +65,7 @@ ANSWERS = {
 	 40: "210",
 	 41: "7652413",
 	 42: "162",
-	 43: "16695334890",
+	 # 43: "16695334890",
 	 44: "5482660",
 	 45: "1533776805",
 	 46: "5777",
