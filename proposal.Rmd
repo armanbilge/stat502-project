@@ -15,12 +15,14 @@ df <- log(data.frame(t(apply(read.table('proposal-results.txt', header = T), 1, 
 Python is one of the most popular programming languages, with many applications in scientific computing.
 Thus, maximizing the performance of Python code is of particular interest.
 Because Python is an interpreted language, its performance depends on the particular runtime used.
-Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython interpreter lacks.
-Fortunately, there are many options for Python runtimes besides CPython, including PyPy, Jython, and IronPython.
+Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython^[https://www.python.org/] interpreter lacks.
+Fortunately, there are many options for Python runtimes besides CPython, including PyPy,^[http://pypy.org/] Jython,^[http://www.jython.org/] and IronPython.^[http://ironpython.net/]
 PyPy uses its own JIT compiler, while Jython and IronPython are built on top of the Java and .NET frameworks, respectively, which encompass their own JIT compilers.
 In this study we hope to determine whether the use of a runtime with a JIT compiler offers a performance benefit over the official CPython implementations.
 
 ## Pilot study
+
+Each experimental unit is a small program that is a solution to one of the Project Euler^[https://projecteuler.net/] problems.
 
 ```{r, dev='pdf', fig.cap=''}
 boxplot(df)
@@ -40,4 +42,3 @@ A method may need to be called hundreds or thousands of times before the JIT com
 Because we want to assess the asymptotic performance of the interpreters, we will do several "warm-up" runs of the program we are testing before taking any measurements to provide ample opportunity for the JIT compiler to make its optimizations.
 
 ### Power calculation
-
