@@ -23,6 +23,10 @@ In this study we hope to determine whether the use of a runtime with a JIT compi
 ## Pilot study
 
 Each experimental unit is a small program that is a solution to one of the Project Euler^[https://projecteuler.net/] problems.
+In this pilot study we considered 50 such programs.
+Each program was run once in each of the CPython (versions 2 and 3), PyPy, Jython, and IronPython interpreters on a personal laptop running macOS 10.9.
+The program run time was measured using the `time` module in the Python standard library from just before to just after code execution.
+Note that this purposefully excludes the time that the interpreters took to start up or shut down.
 
 ```{r, dev='pdf', fig.cap=''}
 boxplot(df)
