@@ -1,0 +1,29 @@
+---
+title: Stat 502 Project Proposal
+date: November 2, 2016
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = T)
+options(digits = 3)
+df <- log(data.frame(t(apply(read.table('proposal-results.txt', header = T), 1, function(x) x / x[1]))))
+```
+
+## Background
+
+## Pilot Study
+
+```{r, dev='pdf', fig.cap=''}
+boxplot(df)
+```
+
+```{r}
+anova(lm(values ~ ind, data=stack(df)))
+```
+
+## Proposal for larger experiment
+
+
+
+### Power calculation
+

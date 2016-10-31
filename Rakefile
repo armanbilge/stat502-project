@@ -6,8 +6,6 @@ rule '.pdf' => '.md' do |t|
   sh "pandoc -V geometry:margin=1in --highlight-style tango #{t.source} -o #{t.name}"
 end
 
-file 'proposal.pdf' => 'results.txt'
-
 commands = ['python', 'python3', 'pypy', 'jython', 'ipy']
 
 task :eulertest do
