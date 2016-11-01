@@ -1,0 +1,78 @@
+---
+title: "Stat 502 Project Proposal"
+author: "Arman Bilge, Cheng Wang, and Zexuan Zhou"
+date: "November 2, 2016"
+output: pdf_document
+---
+
+\frenchspacing
+```{r setup, include=FALSE}
+library(pastecs)
+setwd("~/STAT 502/Project")
+knitr::opts_chunk$set(cache = T)
+options(digits = 3)
+df <- log(data.frame(t(apply(read.table('proposal-results_new.txt', header = T), 1, function(x) x / x[1]))))
+```
+## Background
+Python is one of the most popular programming languages, with many applications in scientific computing.
+Thus, maximizing the performance of Python code is of particular interest.
+Because Python is an interpreted language, its performance depends on the particular runtime used.
+Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython^[https://www.python.org/] interpreter lacks.
+Fortunately, there are many options for Python runtimes besides CPython, including PyPy,^[http://pypy.org/] Jython,^[http://www.jython.org/] and IronPython.^[http://ironpython.net/]
+PyPy uses its own JIT compiler, while Jython and IronPython are built on top of the Java and .NET frameworks, respectively, which encompass their own JIT compilers.
+In this study we hope to determine whether the use of a runtime with a JIT compiler offers a performance benefit over the official CPython implementations.
+
+## Pilot study
+Each experimental unit is a small program that is a solution to one of the Project Euler^[https://projecteuler.net/] problems.
+In this pilot study we considered 47 such programs.
+Each program was run once in each of the CPython (versions 2 and 3), PyPy, Jython, and IronPython interpreters on a personal laptop running macOS 10.9.
+The program run time was measured using the `time` module in the Python standard library from just before to just after code execution.
+Note that this purposefully excludes the time that the interpreters took to start up or shut down.
+```{r, dev='pdf', fig.cap=''}
+boxplot(df[,2:5])
+```
+
+```{r, include=FALSE}
+df.desc<-matrix(c(mean(df[,2]),mean(df[,3]),mean(df[,4]),mean(df[,5]),sd(df[,2]),sd(df[,3]),sd(df[,4]),sd(df[,5])),ncol=2,byrow=FALSE)
+rownames(df.desc)<-c("Python3", "PyPy", "Jython", "IronPy")
+colnames(df.desc)<-c("Mean", "SD")
+df.desc
+```
+
+We would like to do an one-way ANOVA test with the following hypothesis:
+$$H_0: \mu_1=\mu_2=\mu_3=\mu_4 \  \text{vs} \  \ H_a: \text{At least one differs from the others.}$$
+Where $\mu_1, \mu_2, \mu_3, \mu_4$ correpsonds the true population average compiling time ratio of Python3 to Python, PyPy to Python, Jython to Python, and IronPython to Python, respectively.
+```{r}
+anova(lm(values ~ ind, data=stack(df)))
+```
+The ANOVA test gives a p-value of 1.8e-10 << 0.05, with degrees of freedom (4, 230). Therefore we reject the null and conclude that one of the compilers have different compiling time ratio.
+
+## Proposal for larger experiment
+We will implement some additional strategies to ensure robustness of our results, starting with performing multiple replicates for each experimental unit.
+As it is challenging to completely control for the state of the computer that we are running the tests on, we expect there to be some noise in our measurements.
+Performing multiple replicate runs for each program should help reduce the effects of this noise on our results.
+Furthermore, it is not straightforward to accurately measure the performance of a runtime using a JIT compiler.
+A method may need to be called hundreds or thousands of times before the JIT compiler determines that it is worth optimizing.
+Because we want to assess the asymptotic performance of the interpreters, we will do several "warm-up" runs of the program we are testing before taking any measurements to provide ample opportunity for the JIT compiler to make its optimizations.
+
+## Power calculation
+We want ot calculate an proper sample size $n$ to ensure at least a power of 80% for the following hypothesis:
+$$\mu_3 - \mu_1 = 1$$
+We use the pooled variance to estimate the true population variance.
+```{r,include=FALSE}
+nA<-nB<-47
+delta<-1; 
+s2<-((nA-1)*var(df$jython)+(nB-1)*var(df$python3))/(nA-1+nB-1) 
+alpha<-0.05 ; n<-seq(5,50) 
+t.crit<-qt(1-alpha/2,2*n-2)
+t.gamma<-delta/sqrt(s2*(1/n+1/n)) 
+t.power<- (1-pt(t.crit,2*n-2,ncp=t.gamma)+pt(-t.crit,2*n-2,ncp=t.gamma)) 
+t.normal.power<-(1-pnorm(t.crit,mean=t.gamma)+pnorm(-t.crit, mean=t.gamma))
+```
+```{r}
+attach(mtcars)
+par(mfrow=c(1,2))
+plot(x=n,y=t.gamma,ylab=expression(gamma))
+plot(x=n,y=t.power,ylab="power")
+```
+From the graph we see that we need at a sample size of at least 22, which we will use in the future study of our project.
