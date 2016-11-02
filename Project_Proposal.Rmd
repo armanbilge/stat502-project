@@ -6,8 +6,7 @@ output: pdf_document
 ---
 
 \frenchspacing
-```{r setup, include=FALSE}
-library(pastecs)
+```{r setup, echo=FALSE}
 setwd("~/STAT 502/Project")
 knitr::opts_chunk$set(cache = T)
 options(digits = 3)
@@ -28,21 +27,30 @@ In this pilot study we considered 47 such programs.
 Each program was run once in each of the CPython (versions 2 and 3), PyPy, Jython, and IronPython interpreters on a personal laptop running macOS 10.9.
 The program run time was measured using the `time` module in the Python standard library from just before to just after code execution.
 Note that this purposefully excludes the time that the interpreters took to start up or shut down.
-```{r, dev='pdf', fig.cap=''}
+```{r, dev='pdf', fig.cap='', echo=FALSE}
 boxplot(df[,2:5])
 ```
 
-```{r, include=FALSE}
-df.desc<-matrix(c(mean(df[,2]),mean(df[,3]),mean(df[,4]),mean(df[,5]),sd(df[,2]),sd(df[,3]),sd(df[,4]),sd(df[,5])),ncol=2,byrow=FALSE)
-rownames(df.desc)<-c("Python3", "PyPy", "Jython", "IronPy")
+```{r, echo=FALSE}
+df.asrow<-c(df[,2],df[,3],df[,4],df[,5])
+df.py3<-df[,2]
+df.pypy<-df[,3]
+df.jpy<-df[,4]
+df.ipy<-df[,5]
+df.desc<-matrix(c(mean(df.py3),mean(df.pypy),mean(df.jpy),mean(df.ipy),mean(df.asrow),sd(df.py3),sd(df.pypy),sd(df.jpy),sd(df.ipy),sd(df.asrow)),ncol=2,byrow=FALSE)
+rownames(df.desc)<-c("Python3", "PyPy", "Jython", "IronPy", "Sample")
 colnames(df.desc)<-c("Mean", "SD")
+```
+
+```{r, echo=FALSE}
 df.desc
 ```
+
 
 We would like to do an one-way ANOVA test with the following hypothesis:
 $$H_0: \mu_1=\mu_2=\mu_3=\mu_4 \  \text{vs} \  \ H_a: \text{At least one differs from the others.}$$
 Where $\mu_1, \mu_2, \mu_3, \mu_4$ correpsonds the true population average compiling time ratio of Python3 to Python, PyPy to Python, Jython to Python, and IronPython to Python, respectively.
-```{r}
+```{r, echo=FALSE}
 anova(lm(values ~ ind, data=stack(df)))
 ```
 The ANOVA test gives a p-value of 1.8e-10 << 0.05, with degrees of freedom (4, 230). Therefore we reject the null and conclude that one of the compilers have different compiling time ratio.
@@ -56,23 +64,26 @@ A method may need to be called hundreds or thousands of times before the JIT com
 Because we want to assess the asymptotic performance of the interpreters, we will do several "warm-up" runs of the program we are testing before taking any measurements to provide ample opportunity for the JIT compiler to make its optimizations.
 
 ## Power calculation
-We want ot calculate an proper sample size $n$ to ensure at least a power of 80% for the following hypothesis:
-$$\mu_3 - \mu_1 = 1$$
-We use the pooled variance to estimate the true population variance.
-```{r,include=FALSE}
-nA<-nB<-47
-delta<-1; 
-s2<-((nA-1)*var(df$jython)+(nB-1)*var(df$python3))/(nA-1+nB-1) 
-alpha<-0.05 ; n<-seq(5,50) 
-t.crit<-qt(1-alpha/2,2*n-2)
-t.gamma<-delta/sqrt(s2*(1/n+1/n)) 
-t.power<- (1-pt(t.crit,2*n-2,ncp=t.gamma)+pt(-t.crit,2*n-2,ncp=t.gamma)) 
-t.normal.power<-(1-pnorm(t.crit,mean=t.gamma)+pnorm(-t.crit, mean=t.gamma))
+We use $MSE$ as our estimator for $\sigma^2$ and $\alpha = 0.05$ as our test level. 
+```{r, echo=FALSE}
+n1<-n2<-n3<-n4<-47
+m<-4; N<-length(df.asrow)
+tau1<-mean(df.py3)-mean(df.asrow)
+tau2<-mean(df.pypy)-mean(df.asrow)
+tau3<-mean(df.jpy)-mean(df.asrow)
+tau4<-mean(df.ipy)-mean(df.asrow)
+tausum<-(tau1^2+tau2^2+tau3^2+tau4^2); 
+MSE<-1/m*(var(df.py3)+var(df.pypy)+var(df.jpy)+var(df.ipy))
+alpha<-0.05 ; n<-seq(5,50)
+f.lambda<-n*tausum/MSE
+f.crit<-qf(1-alpha/2,m-1,n*m-m)
+f.power<- 1-pf(f.crit,m-1,N-m,ncp=f.lambda)
 ```
-```{r}
+```{r, echo=FALSE}
 attach(mtcars)
-par(mfrow=c(1,2))
-plot(x=n,y=t.gamma,ylab=expression(gamma))
-plot(x=n,y=t.power,ylab="power")
+par(mfrow=c(1,3))
+plot(x=n,y=f.crit,ylab="F.crit")
+plot(x=n,y=f.lambda,ylab=expression(lambda),main=expression(paste("m = 4     ",alpha," = 0.05")))
+plot(x=n,y=f.power,ylab="power")
 ```
-From the graph we see that we need at a sample size of at least 22, which we will use in the future study of our project.
+From the plots we see that if we want to ensure a high power, we need the sample size of each group to be larger than 30.
