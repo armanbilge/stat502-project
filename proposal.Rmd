@@ -7,9 +7,10 @@ date: November 2, 2016
 \frenchspacing
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = T)
 options(digits = 3)
-df <- log(data.frame(t(apply(read.table('proposal-results.txt', header = T), 1, function(x) x / x[1]))))
+df <- data.frame(t(apply(read.table('proposal-results.txt', header = T), 1, function(x) x / x[1])))
+df <- df[apply(df, 1, function(row) !any(row == 0)),]
+log.df <- log(df)
 ```
 
 ## Background
@@ -17,26 +18,43 @@ df <- log(data.frame(t(apply(read.table('proposal-results.txt', header = T), 1, 
 Python is one of the most popular programming languages, with many applications in scientific computing.
 Thus, maximizing the performance of Python code is of particular interest.
 Because Python is an interpreted language, its performance depends on the particular runtime used.
-Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython^[https://www.python.org/] interpreter lacks.
-Fortunately, there are many options for Python runtimes besides CPython, including PyPy,^[http://pypy.org/] Jython,^[http://www.jython.org/] and IronPython.^[http://ironpython.net/]
+Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython interpreter lacks.
+Fortunately, there are many options for Python runtimes besides CPython, including PyPy, Jython, and IronPython.
 PyPy uses its own JIT compiler, while Jython and IronPython are built on top of the Java and .NET frameworks, respectively, which encompass their own JIT compilers.
 In this study we hope to determine whether the use of a runtime with a JIT compiler offers a performance benefit over the official CPython implementations.
 
 ## Pilot study
 
-Each experimental unit is a small program that is a solution to one of the Project Euler^[https://projecteuler.net/] problems.
-In this pilot study we considered 50 such programs.
-Each program was run once in each of the CPython (versions 2 and 3), PyPy, Jython, and IronPython interpreters on a personal laptop running macOS 10.9.
+Each experimental unit is a small program that is a solution to one of the Project Euler problems.
+In this pilot study we considered `r nrow(df)` such programs.
+Each program was run once in each of the CPython (versions 2 and 3), PyPy, Jython, and IronPython interpreters on a personal laptop with macOS 10.9.
 The program run time was measured using the `time` module in the Python standard library from just before to just after code execution.
-Note that this purposefully excludes the time that the interpreters took to start up or shut down.
+Note that this excludes the time that the interpreters took to start up or shut down.
+After sampling, the run times for each program were renormalized by dividing by the run time for that program on the CPython 2 interpreter.
+Preliminary visual inspection of the results suggested that there are performance differences between the interpreters (Figure 1).
 
-```{r, dev='pdf', fig.cap=''}
-boxplot(df)
+<!-- Table: Mean run times and standard deviations of the interpreters relative to the CPython 2 implementation.
+
+| **Interpreter** | **Mean and SD** |
+|:-|-:|
+| CPython 3 | $`r mean(df$python3)` \pm `r sd(df$python3)`$ |
+| PyPy | $`r mean(df$pypy)` \pm `r sd(df$pypy)`$ |
+| Jython | $`r mean(df$jython)` \pm `r sd(df$jython)`$ |
+| IronPython | $`r mean(df$ipy)` \pm `r sd(df$ipy)`$ | -->
+
+```{r boxplot, echo=FALSE, dev='pdf', fig.cap='Running times of various Python interpreters relative to CPython version 2. The horizontal line indicates the CPython 2 baseline.', fig.width=5, fig.height=3}
+par(mar = c(2, 4, 0.5, 0.5))
+boxplot(df[,2:5], las = 1, log = "y")
+abline(h = 1)
 ```
 
-```{r}
-anova(lm(values ~ ind, data=stack(df)))
-```
+Before performing any further analysis, we took a log transformation of the data.
+Then we did a one-way ANOVA test at the $\alpha = 0.01$ significance level with the null hypothesis that the mean runtime for the different interpreters are the same
+
+$$H_0 : \mu_\text{cpy2} = \mu_\text{cpy3} = \mu_\text{pypy} = \mu_\text{jy} = \mu_\text{ipy}$$
+
+and the alternative $H_1$ that at least one mean is different.
+We found that $p = 1.766 \times 10^{-10} \ll 0.01$ and thus had significant evidence to reject the null hypothesis.
 
 ## Proposal for larger experiment
 
@@ -48,3 +66,27 @@ A method may need to be called hundreds or thousands of times before the JIT com
 Because we want to assess the asymptotic performance of the interpreters, we will do several "warm-up" runs of the program we are testing before taking any measurements to provide ample opportunity for the JIT compiler to make its optimizations.
 
 ### Power calculation
+
+```{r power, echo=FALSE}
+colVars <- function(x, na.rm=FALSE, dims=1, unbiased=TRUE) {
+  N <- colSums(!is.na(x), FALSE, dims)
+  Nm1 <- if (unbiased) N-1 else N
+  (colSums(x^2, na.rm, dims) - colSums(x, na.rm, dims)^2/N) / Nm1
+}
+
+n <- 2:50
+power <- power.anova.test(n = n, groups = 5, between.var = var(colMeans(log.df)), within.var = mean(colVars(log.df)), sig.level = 0.01)$power
+
+```
+
+Now we consider the alternative hypothesis that the population means are the sample means estimated in the pilot study.
+Using the MSE estimate to within-treatment variability we can calculate the power for increasing sample sizes (Figure 2).
+Then to achieve a power of $0.99$ at the $\alpha = 0.01$ significance level we need at least $n = `r ceiling(power.anova.test(groups = 5, between.var = var(colMeans(log.df)), within.var = mean(colVars(log.df)), sig.level = 0.01, power = 0.99)$n)`$ samples per intrepeter.
+
+
+```{r power-plot, echo=FALSE, dev='pdf', fig.cap='Power calculations at the $\\alpha = 0.01$ significance level. The horizontal line indicates a power of $0.99$.', fig.width=4, fig.height=2.5}
+
+par(mar = c(4, 4, 0.5, 0.5))
+plot(n, power)
+abline(h = 0.99)
+```
