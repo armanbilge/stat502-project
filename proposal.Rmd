@@ -54,7 +54,7 @@ Then we did a one-way ANOVA test at the $\alpha = 0.01$ significance level with 
 $$H_0 : \mu_\text{cpy2} = \mu_\text{cpy3} = \mu_\text{pypy} = \mu_\text{jy} = \mu_\text{ipy}$$
 
 and the alternative $H_1$ that at least one mean is different.
-We found that $p = 1.766 \times 10^{-10} \ll 0.01$ and thus had significant evidence to reject the null hypothesis.
+We found that $p = `r knitr:::format_sci(anova(lm(values ~ ind, data = stack(log.df)))$"Pr(>F)"[1])` \ll 0.01$ and thus had significant evidence to reject the null hypothesis.
 
 ## Proposal for larger experiment
 
