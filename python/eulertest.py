@@ -12,9 +12,13 @@ def main():
 	for (prob, expectans) in list(sorted(ANSWERS.items()))[:50]:
 		try:
 			module = importlib.import_module("p{:03d}".format(prob))
-			starttime = time.time()
-			actualans = module.compute()  # Must return a string
-			elapsedtime = time.time() - starttime
+			actualans = module.compute()
+			for _ in range(1000): module.compute()
+			elapsedtime = 0
+			for _ in range(10):
+				starttime = time.time()
+				module.compute()
+				elapsedtime += time.time() - starttime
 		except:
 			elapsedtime = float('nan')
 		else:
