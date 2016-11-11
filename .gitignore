@@ -1,3 +1,4 @@
 *.md
 *.pdf
 *.results.txt
+cache/
