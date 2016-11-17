@@ -20,6 +20,8 @@ def main():
 				module.compute()
 				endtime = time.time() - starttime
 				elapsedtime.append(endtime)
+		except KeyboardInterrupt:
+			raise
 		except:
 			elapsedtime = [float('nan')] * 10
 		else:
