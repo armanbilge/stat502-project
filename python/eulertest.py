@@ -13,18 +13,19 @@ def main():
 		try:
 			module = importlib.import_module("p{:03d}".format(prob))
 			actualans = module.compute()
-			for _ in range(1000): module.compute()
-			elapsedtime = 0
+			for _ in range(100): module.compute()
+			elapsedtime = []
 			for _ in range(10):
 				starttime = time.time()
 				module.compute()
-				elapsedtime += time.time() - starttime
+				endtime = time.time() - starttime
+				elapsedtime.append(endtime)
 		except:
-			elapsedtime = float('nan')
+			elapsedtime = [float('nan')] * 10
 		else:
 			if actualans != expectans:
 				elapsedtime = float('nan')
-		print("Problem {:03d}: {}".format(prob, elapsedtime))
+		print("Problem {:03d}: {}".format(prob, ' '.join(map(str, elapsedtime))))
 
 ANSWERS = {
 	  1: "233168",
