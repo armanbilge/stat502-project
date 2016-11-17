@@ -6,9 +6,15 @@
 # https://github.com/nayuki/Project-Euler-solutions
 #
 
+import sys, os, platform
 import importlib, time
 
 def main():
+	try:
+		pf = platform.platform()
+	except:
+		pf = os.name
+	print('# ' + '# '.join((sys.version + '\n' + pf).splitlines(True)))
 	for (prob, expectans) in list(sorted(ANSWERS.items()))[:50]:
 		try:
 			module = importlib.import_module("p{:03d}".format(prob))
