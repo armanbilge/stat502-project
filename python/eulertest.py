@@ -15,7 +15,7 @@ def main():
 	except:
 		pf = os.name
 	print('# ' + '# '.join((sys.version + '\n' + pf).splitlines(True)))
-	for (prob, expectans) in list(sorted(ANSWERS.items()))[:50]:
+	for (prob, expectans) in list(sorted(ANSWERS.items()))[:60]:
 		try:
 			module = importlib.import_module("p{:03d}".format(prob))
 			actualans = module.compute()
