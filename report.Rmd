@@ -7,7 +7,9 @@ date: December 2, 2016
 \frenchspacing
 
 ```{r setup, include=FALSE}
-library(contrast)
+library(MASS)
+library(multcomp)
+
 options(digits = 3)
 df <- read.table('final.results.txt', header = T)
 programs <- unique(df$program)
@@ -24,7 +26,10 @@ for (p in programs) {
   }
 }
 
-df$time <- log(df$time + eps)
+df$time <- df$time + eps
+boxcox(time ~ factor(program) + os * interpreter, data=df)
+
+df$time <- log(df$time)
 
 boxplot(time~interpreter+program, data=df, col=c(rep('red', 4), rep('blue', 4), rep('green', 4), rep('black', 4), rep('orange', 4)))
 
@@ -40,6 +45,9 @@ anova(additive.model, interaction.model)
 qqnorm(residuals(additive.model))
 qqnorm(residuals(interaction.model))
 
+plot(additive.model$fitted.values, residuals(additive.model))
+plot(interaction.model$fitted.values, residuals(interaction.model))
+
 conf.int <- function(model, t) {
   coeff <- summary(t)$test$coefficients[1]
   se <- summary(t)$test$sigma[1]
@@ -48,16 +56,16 @@ conf.int <- function(model, t) {
 }
 
 K.jit <- matrix(c(rep(0, 47), 1, -1, -1, rep(0, 6)), 1)
-t.jit <- glht(additive.model, linfct = K.jit)
+t.jit <- glht(interaction.model, linfct = K.jit)
 
 K.ipyvpypy <- matrix(c(rep(0, 47), 1, 0, 0, rep(0, 6)), 1)
-t.ipyvpypy <- glht(additive.model, linfct = K.ipyvpypy)
+t.ipyvpypy <- glht(interaction.model, linfct = K.ipyvpypy)
 
-K.macvwin <- matrix(c(rep(0, 45), 1, -1, 0, p0, 0, rep(0, 6)), 1)
-t.macvwin <- glht(additive.model, linfct = K.macvwin)
+K.macvwin <- matrix(c(rep(0, 45), 1, -1, 0, 0, 0, rep(0, 6)), 1)
+t.macvwin <- glht(interaction.model, linfct = K.macvwin)
 
 K.macvlin <- matrix(c(rep(0, 45), 1, 0, 0, 0, 0, rep(0, 6)), 1)
-t.macvlin <- glht(additive.model, linfct = K.macvlin)
+t.macvlin <- glht(interaction.model, linfct = K.macvlin)
 
 ```
 
