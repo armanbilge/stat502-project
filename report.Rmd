@@ -1,0 +1,64 @@
+---
+title: Stat 502 Project Report
+author: Arman Bilge, Cheng Wang, and Zexuan Zhou
+date: December 2, 2016
+---
+
+\frenchspacing
+
+```{r setup, include=FALSE}
+library(contrast)
+options(digits = 3)
+df <- read.table('final.results.txt', header = T)
+programs <- unique(df$program)
+oses <- unique(df$os)
+interps <- unique(df$interpreter)
+eps <- 10^-5
+
+for (p in programs) {
+  for (os in oses) {
+    for (interp in interps) {
+      if (sum(df[df$program == p & df$os == os & df$interpreter == interp, ]$time) == 0)
+        df <- df[df$program != p,]
+    }
+  }
+}
+
+df$time <- log(df$time + eps)
+
+boxplot(time~interpreter+program, data=df, col=c(rep('red', 4), rep('blue', 4), rep('green', 4), rep('black', 4), rep('orange', 4)))
+
+boxplot(time~os+program, data=df, col=c(rep('red', 3), rep('blue', 3), rep('green', 3), rep('black', 3), rep('orange', 3)))
+
+additive.model <- lm(time ~ factor(program) + os + interpreter, data=df)
+interaction.model <- lm(time ~ factor(program) + os * interpreter, data=df)
+
+anova(additive.model)
+anova(interaction.model)
+anova(additive.model, interaction.model)
+
+qqnorm(residuals(additive.model))
+qqnorm(residuals(interaction.model))
+
+conf.int <- function(model, t) {
+  coeff <- summary(t)$test$coefficients[1]
+  se <- summary(t)$test$sigma[1]
+  df <- model$df
+  return(list(a=coeff - se * pt(0.975, df), b=coeff + se * pt(0.975, df)))
+}
+
+K.jit <- matrix(c(rep(0, 47), 1, -1, -1, rep(0, 6)), 1)
+t.jit <- glht(additive.model, linfct = K.jit)
+
+K.ipyvpypy <- matrix(c(rep(0, 47), 1, 0, 0, rep(0, 6)), 1)
+t.ipyvpypy <- glht(additive.model, linfct = K.ipyvpypy)
+
+K.macvwin <- matrix(c(rep(0, 45), 1, -1, 0, p0, 0, rep(0, 6)), 1)
+t.macvwin <- glht(additive.model, linfct = K.macvwin)
+
+K.macvlin <- matrix(c(rep(0, 45), 1, 0, 0, 0, 0, rep(0, 6)), 1)
+t.macvlin <- glht(additive.model, linfct = K.macvlin)
+
+```
+
+
