@@ -53,7 +53,7 @@ summaryBy(time~os, data=df,FUN=function(x) {c(m=mean(x),s=sd(x))})
 
 # 3. Data and Analysis
 ## 3.1 Data Quality
-After invesgating an addtive model and finding that we have an unequal variance for the residual, we used the Box-Cox procedure to perform a transformation. The result was that we did a log transformation for our running time and the residual tends to stablize but still there are some diverge in the lower range. These data points mainly come from the running result from the Windows OS and they have very small value because the Windows computer we used has the best hardware setting and thus for some of the programs they run faster. The number of these data points is relatively small compared to the total number of all data points so we consider that we have achieved the goal to stablize the variance among residuals.
+After investigating an additive model and finding that we have an unequal variance for the residual, we used the Box-Cox procedure to perform a transformation. The result was that we did a log transformation for our running time and the residual tends to stabilize but still there are some diverge in the lower range. These data points mainly come from the running result from the Windows OS and they have very small value because the Windows computer we used has the best hardware setting and thus for some of the programs they run faster. The number of these data points is relatively small compared to the total number of all data points so we consider that we have achieved the goal to stabilize the variance among residuals.
 
 ### 3.1.1 Summary Statistics
 ```{r, echo=F}
@@ -83,7 +83,7 @@ Recall that we are interested in the following questions:\
 1. Which interpreters perform best on average?\
 2. Does OS have influence on the running time?\
 3. Is there any interaction effect on running time between the OS and the interpreters?\
-Based on these two questions we proposed two models. One addtive model and one interaction model. We use the 45 programs as our blocking factor.\
+Based on these two questions we proposed two models. One additive model and one interaction model. We use the 45 programs as our blocking factor.\
 
 ### 3.2.1 Addtive Model
 $$ y_{} = \mu_i + \alpha_{ij} + \beta_{ijk} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
@@ -120,7 +120,7 @@ We conducted a model selection test, to decide whether we should use the full mo
 ```{r, echo=F}
 anova(additive.model, interaction.model)
 ```
-The ANOVA table tells us that there is a difference between two models. Based on our quesions of interest, we decide to choose the interaction model, which also will help us conduct contrast test to determine what conbination of OS and interpreter performs best.
+The ANOVA table tells us that there is a difference between two models. Based on our questions of interest, we decide to choose the interaction model, which also will help us conduct contrast test to determine what combination of OS and interpreter performs best.
 
 ## 3.4 Assumption Check
 ```{r, echo=F}
@@ -147,9 +147,9 @@ We proposed following contrasts:\
 $C_1: \beta_1 + \beta_2 - \beta_3 - \beta_4 = 0$ (JIT vs Non-JIT)\
 $C_2: \beta_1 - \beta_2 = 0$ (which one is the best within JIT, iPy or PyPy)\
 $C_3: \alpha_1 - \alpha_2 = 0$ (Mac vs Win)\
-$C_4: \alpha_2 - \alpha_3 = 0$ (Mac vs Linx)\
+$C_4: \alpha_2 - \alpha_3 = 0$ (Mac vs Linux)\
 $C_5: (\alpha\beta_{23} - \alpha\beta_{33}) - (\alpha\beta_{24} - \alpha\beta_{34})$ (OS\*Py vs OS\*Py3)\
-The reason we only do one contrast for the interaction effect is because that we found that the other interaction terms are not significatn in our interaction model, which means that we can ignore those terms.
+The reason we only do one contrast for the interaction effect is because that we found that the other interaction terms are not significant in our interaction model, which means that we can ignore those terms.
 
 ### 3.5.2 CIs for contrasts
 ```{r, echo=F}
@@ -172,12 +172,12 @@ CI.table<-cbind(c("C1","C2","C3","C4","C5"),rbind(conf.int(t.jit),conf.int(t.ipy
 
 kable(head(CI.table),format="markdown",col.names=c("Contrast","Confidence","Interval"))
 ```
-We see that all of the 95% confidence intervals for our contrasts do not contain zero so we condclude the following:\
+We see that all of the 95% confidence intervals for our contrasts do not contain zero so we conclude the following:\
 $C_1$: JIT is faster than Non-JIT.\
 $C_2$: Within JIT, PyPy is faster. This also implies that iPy performs best among all four interpreters.\
 $C_3$: Windows OS is faster than Mac OS.\
-$C_4$: Windows OS is faster than Linx OS. Combine this with $C_3$ we conclude that Windows OS performs best.\
-$C_5$: Python3 has a better perfromance than Python when the OS changes from Mac to Windows.\
+$C_4$: Windows OS is faster than Linux OS. Combine this with $C_3$ we conclude that Windows OS performs best.\
+$C_5$: Python3 has a better performance than Python when the OS changes from Mac to Windows.\
 
 
 
