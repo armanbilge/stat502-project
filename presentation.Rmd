@@ -1,0 +1,187 @@
+---
+title: "Performance among Python Interpreters"
+author: "Arman Bilge, Cheng Wang, and Zexuan Zhou"
+date: "December 9, 2016"
+output: pdf_document
+---
+
+\frenchspacing
+
+```{r setup, include=FALSE}
+library(MASS)
+library(multcomp)
+library(knitr)
+library(doBy)
+options(digits = 3)
+df <- read.table('final.results.txt', header = T)
+programs <- unique(df$program)
+oses <- unique(df$os)
+interps <- unique(df$interpreter)
+eps <- 10^-5
+
+for (p in programs) {
+  for (os in oses) {
+    for (interp in interps) {
+      if (sum(df[df$program == p & df$os == os & df$interpreter == interp, ]$time) == 0)
+        df <- df[df$program != p,]
+    }
+  }
+}
+
+df$time <- df$time + eps
+boxcox(time ~ factor(program) + os * interpreter, data=df)
+df$time <- log(df$time)
+```
+
+```{r, include=F}
+aggregate(time~interpreter, df, summary) #running time summary w.r.t interpreters
+aggregate(time~os, df, summary) #running time summary w.r.t interpreters
+summaryBy(time~interpreter, data=df,FUN=function(x) {c(m=mean(x),s=sd(x))})
+summaryBy(time~os, data=df,FUN=function(x) {c(m=mean(x),s=sd(x))})
+```
+# Introduction
+
+- Python is one of the most popular programming languages, with many applications in scientific computing.
+- Thus, maximizing the performance of Python code is of particular interest.
+- Because Python is an interpreted language, its performance depends on the particular runtime used.
+- Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython interpreter lacks.
+- Fortunately, there are many options for Python runtimes besides CPython, including PyPy, and IronPython.
+- PyPy uses its own JIT compiler, while IronPython is built on top of .NET framework which encompasses its own JIT compiler.
+- In this study we hoped to determine which Python interpreter has the best performance and how the interpreters' performance varies across operating systems and hardware.
+- In particular, we wanted to test whether the use of a runtime with a JIT compiler offers a performance benefit over the official CPython implementations.
+
+### 2. Experimental Design
+
+We considered the four Python interpreters aforementioned: CPython 2 and 3, PyPy, and IronPython.
+Our pilot study also considered a fifth Python interpreter, Jython.
+However, we experienced several critical bugs when running programs in Jython and deemed it unfit for general use and thus excluded it from the experiment.
+In addition, we considered three different operating systems, Ubuntu Linux, Macintosh, and Windows running on different hardware.
+
+Each experimental unit was a small program that is a solution to one of the Project Euler problems (Project Euler is a collection of programming puzzles).
+In this study we considered `r length(unique(df$program))` such programs.
+Because we expected each program to have its own mean running time, we blocked our results on the program.
+Our design was a complete block design, as each program was "treated" or run on all combinations of OS and interpreter.
+
+It is not straightforward to accurately measure the performance of a runtime that uses a JIT compiler.
+A method may need to be called hundreds times before the JIT compiler determines that it is worth optimizing.
+Because we wanted to assess the asymptotic performance of the interpreters, Before taking any measurements, each program was run 100 times as a "warm-up" to provide ample opportunity for the JIT compiler to make its optimizations.
+
+To control for the state of the computer that we were taking measurements on, we then ran and measured the runtime of each program 10 times. The program runtime was measured using the `time` module in the Python standard library from just before to just after code execution.
+Note that this purposefully excludes the time that the interpreters took to start up or shut down.
+
+### 3. Data and Analysis
+
+After investigating an additive model and finding that we have an unequal variance for the residual, we used the Box-Cox procedure to perform a transformation.
+Unfortunately, the timer in Windows appeared to have less accuracy than in Mac and Linux resulting in several runtimes of zero reported for fast running times.
+Thus we shifted our timing results by a small amount before performing Box-Cox.
+The result was that we did a log transformation for our running time and the residual tends to stabilize but still there are some divergence in the lower range.
+However, The number of these data points is relatively small compared to the total number of all data points so we assumed that we have sufficiently achieved the goal to stabilize the variance among residuals.
+
+```{r, echo=F}
+interpsummary<-cbind(c("iPy","PyPy","Python","Python3"),c(-1.41,-3.00,-1.55,-1.39),c(-1.73,-3.69,-1.92,-1.83),c(2.77,2.82,2.81,3.03))
+kable(head(interpsummary),format="markdown",col.names=c("Interpreter","Median","Mean","SD"))
+```
+Comparing different interpreters, we found that on average the interpreter PyPy is faster than the rest and interpreters with JIT (iPy and Pypy) are faster than the interpreters without JIT (Python and Python3).
+
+```{r, echo=F}
+ossummary<-cbind(c("Linux","Mac","Windows"),c(-2.16,-1.78,-2.02),c(-2.41,-2.94,-2.52),c(2.87,2.93,3.09))
+kable(head(ossummary),format="markdown",col.names=c("Interpreter","Median","Mean","SD"))
+```
+
+Comparing different OS we found that on average Linux is faster, however the means of all three interpreters are close to each other so we need to conduct further analysis.
+
+# Performance of Interpreters
+```{r, dev='pdf', fig.width=7.5, fig.height=4.5, echo=F}
+boxplot(time~interpreter+program, data=df, col=c(rep('red', 4), rep('blue', 4), rep('green', 4), rep('orange', 4)))
+```
+
+# Performance of OSes
+```{r, dev='pdf', fig.width=7.5, fig.height=4.5, echo=F}
+boxplot(time~os+program, data=df, col=c(rep('red', 3), rep('blue', 3), rep('green', 3), rep('orange', 3)))
+```
+We test these observations for their significance in the following sections.
+
+# Models
+
+$$\text{additive: } y_{ijkl} = \mu_i + \alpha_{j} + \beta_{k} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
+$$\text{interaction: } y_{ijkl} = \mu_i + \alpha_{j} + \beta_{k} + \left(\alpha\beta\right)_{jk} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
+$$ \mu \text{: blocks/programs},\ i = 1, \ldots , 45; \epsilon \text{: error},\ l = 1, \ldots , 5400$$
+$$ \alpha \text{: OS},\ j = 1, 2, 3; \beta \text{: interpreter},\ k = 1, 2, 3, 4$$
+$$ \alpha\beta \text{: interaction\ effect\ of\ OS\ and\ interpreter} $$
+
+```{r, echo=F}
+additive.model <- lm(time ~ factor(program) + os + interpreter, data=df)
+anova(additive.model)
+```
+The ANOVA table for the additive model suggests that the OS does have an influence on the running time of programs. However, the portion of variance that the OS factor accounts for is pretty small because we observe a relatively small value for MST of the OS factor.
+
+```{r, echo=F}
+interaction.model <- lm(time ~ factor(program) + os * interpreter, data=df)
+anova(interaction.model)
+```
+The ANOVA table for the interaction model suggests that there exists an interaction effect between OS and interpreter. However, the portion of variance that the interaction term accounts for is pretty small because we observe a relatively small value for MST of the OS factor. As for which combination of OS and interpreter perform better we will do a contrast test latter.
+
+We conducted a model selection test to determine whether we should use the full model (interaction model) or the reduced model (additive model).
+```{r, echo=F}
+anova(additive.model, interaction.model)
+```
+The ANOVA table tells us that there is a significant difference between two models. Based on our questions of interest, we decided to choose the interaction model, which also will help us conduct contrast test to determine what combination of OS and interpreter performs best.
+
+```{r, dev='pdf', fig.width=7.5, fig.height=3, echo=F}
+par(mfrow=c(1,3))
+hist(residuals(interaction.model))
+qqnorm(residuals(interaction.model))
+qqline(residuals(interaction.model))
+plot(interaction.model$fitted.values, residuals(interaction.model))
+```
+The normality assumption is violated and the equal variance assumption also seems violated. However, because ANOVA is generally robust to these violations, we can still have some confidence in our analysis. There are some skewed points in two sides. We think that these violations might be because we run 100 times for warmup but only run each program 10 times for measurements.
+
+#### Contrasts
+
+```{r, echo=F}
+conf.int <- function(t) {
+  coeff <- summary(t)$test$coefficients[1]
+  se <- summary(t)$test$sigma[1]
+  df <- interaction.model$df
+  return(list(a=coeff-se*pt(0.975,df),b=coeff+se*pt(0.975, df)))
+}
+```
+
+We proposed following contrasts:\
+$C_1: \beta_1 + \beta_2 - \beta_3 - \beta_4 = 0$ (JIT vs Non-JIT)\
+$C_2: \beta_1 - \beta_2 = 0$ (which one is the best within JIT, iPy or PyPy)\
+$C_3: \alpha_1 - \alpha_2 = 0$ (Mac vs Win)\
+$C_4: \alpha_2 - \alpha_3 = 0$ (Mac vs Linux)\
+$C_5: (\alpha\beta_{23} - \alpha\beta_{33}) - (\alpha\beta_{24} - \alpha\beta_{34})$ (OS\*Py vs OS\*Py3)\
+The reason we only do one contrast for the interaction effect is because that we found that the other interaction terms are not significant in our interaction model, which means that we can ignore those terms.
+
+```{r, echo=F}
+K.jit <- matrix(c(rep(0, 47), 1, -1, -1, rep(0, 6)), 1)
+t.jit <- glht(interaction.model, linfct = K.jit)
+
+K.ipyvpypy <- matrix(c(rep(0, 47), 1, 0, 0, rep(0, 6)), 1)
+t.ipyvpypy <- glht(interaction.model, linfct = K.ipyvpypy)
+
+K.macvwin <- matrix(c(rep(0, 45), 1, -1, 0, 0, 0, rep(0, 6)), 1)
+t.macvwin <- glht(interaction.model, linfct = K.macvwin)
+
+K.macvlin <- matrix(c(rep(0, 45), 1, 0, 0, 0, 0, rep(0, 6)), 1)
+t.macvlin <- glht(interaction.model, linfct = K.macvlin)
+
+K.ospyvospy3 <- matrix(c(rep(0, 50), 0, 0, 1, -1, -1, 1), 1)
+t.ospyvospy3 <- glht(interaction.model, linfct = K.ospyvospy3)
+
+CI.table<-cbind(c("C1","C2","C3","C4","C5"),rbind(conf.int(t.jit),conf.int(t.ipyvpypy),conf.int(t.macvwin),conf.int(t.macvlin),conf.int(t.ospyvospy3)))
+
+kable(head(CI.table),format="markdown",col.names=c("Contrast","Confidence","Interval"))
+```
+We see that all of the 95% confidence intervals for our contrasts do not contain zero so we conclude the following:\
+$C_1$: JIT is faster than Non-JIT.\
+$C_2$: Within JIT, PyPy is faster. This also implies that iPy performs best among all four interpreters.\
+$C_3$: Windows OS is faster than Mac OS.\
+$C_4$: Windows OS is faster than Linux OS. Along with $C_3$ we conclude that Windows OS performs best.\
+$C_5$: Python3 has a better performance than Python when the OS changes from Mac to Windows.
+
+### 4. Conclusion
+
+Based on the analysis, implementations in interpreters with JIT compliers are fastest than non-JIT and Windows is faster than Linux and Mac. Sometimes there can be some interactive effects; for example, Python3 is faster than Python when the operating system is changed from Mac to Windows. This benchmark provides a comparison of four interpreters under three different operating systems. The overall comparison shows that a person should choose an appropriate interpreter with operating system, taking into account the time expected. In general, PyPy and Windows appeared to run the fastest and we recommend the use of these for any intensive computation in Python

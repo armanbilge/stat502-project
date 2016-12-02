@@ -6,6 +6,10 @@ rule '.pdf' => '.md' do |t|
   sh "pandoc -f markdown+inline_notes -V geometry:margin=1in --highlight-style tango #{t.source} -o #{t.name}"
 end
 
+file 'presentation.pdf' => 'presentation.md' do |t|
+  sh "pandoc -t beamer --highlight-style tango #{t.source} -o #{t.name}"
+end
+
 commands = ['python', 'python3', 'pypy', 'jython', 'ipy']
 
 task :eulertest do
