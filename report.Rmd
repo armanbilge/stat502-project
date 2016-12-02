@@ -39,100 +39,114 @@ aggregate(time~os, df, summary) #running time summary w.r.t interpreters
 summaryBy(time~interpreter, data=df,FUN=function(x) {c(m=mean(x),s=sd(x))})
 summaryBy(time~os, data=df,FUN=function(x) {c(m=mean(x),s=sd(x))})
 ```
-# 1. Introduction
+### 1. Introduction
 
-# 2. Experimental Design
+Python is one of the most popular programming languages, with many applications in scientific computing.
+Thus, maximizing the performance of Python code is of particular interest.
+Because Python is an interpreted language, its performance depends on the particular runtime used.
+Interpreted languages often rely on a just-in-time (JIT) compiler to dynamically optimize the code at runtime, which the official CPython interpreter lacks.
+Fortunately, there are many options for Python runtimes besides CPython, including PyPy, and IronPython.
+PyPy uses its own JIT compiler, while IronPython is built on top of .NET framework which encompasses its own JIT compiler.
+In this study we hoped to determine which Python interpreter has the best performance and how the interpreters' performance varies across operating systems and hardware.
+In particular, we wanted to test whether the use of a runtime with a JIT compiler offers a performance benefit over the official CPython implementations.
 
-## 2.1 Motivation
+### 2. Experimental Design
 
-## 2.2 Experimental Settings
+We considered the four Python interpreters aforementioned: CPython 2 and 3, PyPy, and IronPython.
+Our pilot study also considered a fifth Python interpreter, Jython.
+However, we experienced several critical bugs when running programs in Jython and deemed it unfit for general use and thus excluded it from the experiment.
+In addition, we considered three different operating systems, Ubuntu Linux, Macintosh, and Windows running on different hardware.
 
-### 2.2.1 Experimental Units and Randomization
+Each experimental unit was a small program that is a solution to one of the Project Euler problems (Project Euler is a collection of programming puzzles).
+In this study we considered `r length(unique(df$program))` such programs.
+Because we expected each program to have its own mean running time, we blocked our results on the program.
+Our design was a complete block design, as each program was "treated" or run on all combinations of OS and interpreter.
 
-### 2.2.2 Measurement
+It is not straightforward to accurately measure the performance of a runtime that uses a JIT compiler.
+A method may need to be called hundreds times before the JIT compiler determines that it is worth optimizing.
+Because we wanted to assess the asymptotic performance of the interpreters, Before taking any measurements, each program was run 100 times as a "warm-up" to provide ample opportunity for the JIT compiler to make its optimizations.
 
-# 3. Data and Analysis
-## 3.1 Data Quality
-After investigating an additive model and finding that we have an unequal variance for the residual, we used the Box-Cox procedure to perform a transformation. The result was that we did a log transformation for our running time and the residual tends to stabilize but still there are some diverge in the lower range. These data points mainly come from the running result from the Windows OS and they have very small value because the Windows computer we used has the best hardware setting and thus for some of the programs they run faster. The number of these data points is relatively small compared to the total number of all data points so we consider that we have achieved the goal to stabilize the variance among residuals.
+To control for the state of the computer that we were taking measurements on, we then ran and measured the runtime of each program 10 times. The program runtime was measured using the `time` module in the Python standard library from just before to just after code execution.
+Note that this purposefully excludes the time that the interpreters took to start up or shut down.
 
-### 3.1.1 Summary Statistics
+### 3. Data and Analysis
+
+After investigating an additive model and finding that we have an unequal variance for the residual, we used the Box-Cox procedure to perform a transformation.
+Unfortunately, the timer in Windows appeared to have less accuracy than in Mac and Linux resulting in several runtimes of zero reported for fast running times.
+Thus we shifted our timing results by a small amount before performing Box-Cox.
+The result was that we did a log transformation for our running time and the residual tends to stabilize but still there are some divergence in the lower range.
+However, The number of these data points is relatively small compared to the total number of all data points so we assumed that we have sufficiently achieved the goal to stabilize the variance among residuals.
+
 ```{r, echo=F}
 interpsummary<-cbind(c("iPy","PyPy","Python","Python3"),c(-1.41,-3.00,-1.55,-1.39),c(-1.73,-3.69,-1.92,-1.83),c(2.77,2.82,2.81,3.03))
 kable(head(interpsummary),format="markdown",col.names=c("Interpreter","Median","Mean","SD"))
 ```
 Comparing different interpreters, we found that on average the interpreter PyPy is faster than the rest and interpreters with JIT (iPy and Pypy) are faster than the interpreters without JIT (Python and Python3).
 
-
 ```{r, echo=F}
 ossummary<-cbind(c("Linux","Mac","Windows"),c(-2.16,-1.78,-2.02),c(-2.41,-2.94,-2.52),c(2.87,2.93,3.09))
 kable(head(ossummary),format="markdown",col.names=c("Interpreter","Median","Mean","SD"))
 ```
 
-Comparing different OS we found that on average Linux is faster, however the means of all three interpreters are close to each other so we need to conduct further inspection.
+Comparing different OS we found that on average Linux is faster, however the means of all three interpreters are close to each other so we need to conduct further analysis.
 
-### 3.1.2 Overall Observation
-```{r, echo=F}
-boxplot(time~interpreter+program, data=df, col=c(rep('red', 4), rep('blue', 4), rep('green', 4), rep('black', 4), rep('orange', 4)))
+The first boxplot shows the performance of the interpreters. Consecutive boxes of the same color are the same program run on the four interpreters.
+It is immediately obvious that the second interpreter, PyPy, is often significantly faster than the other tree interpreters.
 
-boxplot(time~os+program, data=df, col=c(rep('red', 3), rep('blue', 3), rep('green', 3), rep('black', 3), rep('orange', 3)))
+```{r, dev='pdf', fig.width=7.5, fig.height=4.5, echo=F}
+boxplot(time~interpreter+program, data=df, col=c(rep('red', 4), rep('blue', 4), rep('green', 4), rep('orange', 4)))
 ```
+The second boxplot shows the performance of the OSes. Consecutive boxes of the same color are the same program run on the four OSes.
+Here, the most consistent trend is that the second OS, Mac, appears to have the slowest running time.
 
+```{r, dev='pdf', fig.width=7.5, fig.height=4.5, echo=F}
+boxplot(time~os+program, data=df, col=c(rep('red', 3), rep('blue', 3), rep('green', 3), rep('orange', 3)))
+```
+We test these observations for their significance in the following sections.
 
-## 3.2 Model Proposal
+#### Models, ANOVA, and violation of assumptions
+
 Recall that we are interested in the following questions:\
 1. Which interpreters perform best on average?\
 2. Does OS have influence on the running time?\
 3. Is there any interaction effect on running time between the OS and the interpreters?\
-Based on these two questions we proposed two models. One additive model and one interaction model. We use the 45 programs as our blocking factor.\
+Based on these questions we proposed two models, an additive model and an interaction model. We use the 45 programs as our blocking factor.
 
-### 3.2.1 Addtive Model
-$$ y_{} = \mu_i + \alpha_{ij} + \beta_{ijk} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
-$$ \mu - blocks/programs,\ i = 1, ... , 45$$
-$$ \alpha - OS,\ j = 1, 2, 3$$
-$$ \beta - interpreter,\ k = 1, 2, 3, 4$$
-$$ \epsilon - error, l = 1, ... , 5400$$
+$$\text{additive: } y_{ijkl} = \mu_i + \alpha_{j} + \beta_{k} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
+$$\text{interaction: } y_{ijkl} = \mu_i + \alpha_{j} + \beta_{k} + \left(\alpha\beta\right)_{jk} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
+$$ \mu \text{: blocks/programs},\ i = 1, \ldots , 45; \epsilon \text{: error},\ l = 1, \ldots , 5400$$
+$$ \alpha \text{: OS},\ j = 1, 2, 3; \beta \text{: interpreter},\ k = 1, 2, 3, 4$$
+$$ \alpha\beta \text{: interaction\ effect\ of\ OS\ and\ interpreter} $$
 
-### 3.2.2 Interaction Model
-$$ y_{} = \mu_i + \alpha_{ij} + \beta_{ijk} + \alpha\beta_{ijk} + \epsilon_{ijkl},\   \epsilon_{ijkl} \sim N(0,\sigma)$$
-$$ \mu - blocks/programs,\ i = 1, ... , 45$$
-$$ \alpha - OS,\ j = 1, 2, 3$$
-$$ \beta - interpreter,\ k = 1, 2, 3, 4$$
-$$ \alpha\beta - interaction\ effect\ of\ OS\ and\ interpreter $$
-$$ \epsilon - error,\ l = 1, ... , 5400$$
-
-## 3.3 ANOVA Summaries
-### 3.3.1 Summary for the additive model
 ```{r, echo=F}
 additive.model <- lm(time ~ factor(program) + os + interpreter, data=df)
 anova(additive.model)
 ```
 The ANOVA table for the additive model suggests that the OS does have an influence on the running time of programs. However, the portion of variance that the OS factor accounts for is pretty small because we observe a relatively small value for MST of the OS factor.
 
-### 3.3.2 Summary for the interaction model
 ```{r, echo=F}
 interaction.model <- lm(time ~ factor(program) + os * interpreter, data=df)
 anova(interaction.model)
 ```
-The ANOVA table for the interaction model suggests that there exists an interaction effect of OS and interpreter. However, the portion of variance that the interaction term accounts for is pretty small because we observe a relatively small value for MST of the OS factor. As for which combination of OS and interpreter perform better we will do a contrast test latter.
+The ANOVA table for the interaction model suggests that there exists an interaction effect between OS and interpreter. However, the portion of variance that the interaction term accounts for is pretty small because we observe a relatively small value for MST of the OS factor. As for which combination of OS and interpreter perform better we will do a contrast test latter.
 
-### 3.3.3 Full Model vs. Reduced Model
-We conducted a model selection test, to decide whether we should use the full model (interaction model) or the reduced model (additive model)
+We conducted a model selection test to determine whether we should use the full model (interaction model) or the reduced model (additive model).
 ```{r, echo=F}
 anova(additive.model, interaction.model)
 ```
-The ANOVA table tells us that there is a difference between two models. Based on our questions of interest, we decide to choose the interaction model, which also will help us conduct contrast test to determine what combination of OS and interpreter performs best.
+The ANOVA table tells us that there is a significant difference between two models. Based on our questions of interest, we decided to choose the interaction model, which also will help us conduct contrast test to determine what combination of OS and interpreter performs best.
 
-## 3.4 Assumption Check
-```{r, echo=F}
+```{r, dev='pdf', fig.width=7.5, fig.height=3, echo=F}
 par(mfrow=c(1,3))
 hist(residuals(interaction.model))
 qqnorm(residuals(interaction.model))
 qqline(residuals(interaction.model))
 plot(interaction.model$fitted.values, residuals(interaction.model))
 ```
-The normality assumption is violated. And the equal variance assumption seems also violated. However these do not affect the robustness of ANOVA. There are some skewed points in two sides. We think that these violations might be because we run 100 times for warmup but only run each program 10 times for measurements.
+The normality assumption is violated and the equal variance assumption also seems violated. However, because ANOVA is generally robust to these violations, we can still have some confidence in our analysis. There are some skewed points in two sides. We think that these violations might be because we run 100 times for warmup but only run each program 10 times for measurements.
 
-## 3.5 Contrast Tests
+#### Contrasts
+
 ```{r, echo=F}
 conf.int <- function(t) {
   coeff <- summary(t)$test$coefficients[1]
@@ -142,7 +156,6 @@ conf.int <- function(t) {
 }
 ```
 
-### 3.5.1 Contrasts
 We proposed following contrasts:\
 $C_1: \beta_1 + \beta_2 - \beta_3 - \beta_4 = 0$ (JIT vs Non-JIT)\
 $C_2: \beta_1 - \beta_2 = 0$ (which one is the best within JIT, iPy or PyPy)\
@@ -151,7 +164,6 @@ $C_4: \alpha_2 - \alpha_3 = 0$ (Mac vs Linux)\
 $C_5: (\alpha\beta_{23} - \alpha\beta_{33}) - (\alpha\beta_{24} - \alpha\beta_{34})$ (OS\*Py vs OS\*Py3)\
 The reason we only do one contrast for the interaction effect is because that we found that the other interaction terms are not significant in our interaction model, which means that we can ignore those terms.
 
-### 3.5.2 CIs for contrasts
 ```{r, echo=F}
 K.jit <- matrix(c(rep(0, 47), 1, -1, -1, rep(0, 6)), 1)
 t.jit <- glht(interaction.model, linfct = K.jit)
@@ -176,8 +188,9 @@ We see that all of the 95% confidence intervals for our contrasts do not contain
 $C_1$: JIT is faster than Non-JIT.\
 $C_2$: Within JIT, PyPy is faster. This also implies that iPy performs best among all four interpreters.\
 $C_3$: Windows OS is faster than Mac OS.\
-$C_4$: Windows OS is faster than Linux OS. Combine this with $C_3$ we conclude that Windows OS performs best.\
-$C_5$: Python3 has a better performance than Python when the OS changes from Mac to Windows.\
+$C_4$: Windows OS is faster than Linux OS. Along with $C_3$ we conclude that Windows OS performs best.\
+$C_5$: Python3 has a better performance than Python when the OS changes from Mac to Windows.
 
+### 4. Conclusion
 
-
+Based on the analysis, implementations in interpreters with JIT compliers are fastest than non-JIT and Windows is faster than Linux and Mac. Sometimes there can be some interactive effects; for example, Python3 is faster than Python when the operating system is changed from Mac to Windows. This benchmark provides a comparison of four interpreters under three different operating systems. The overall comparison shows that a person should choose an appropriate interpreter with operating system, taking into account the time expected. In general, PyPy and Windows appeared to run the fastest and we recommend the use of these for any intensive computation in Python
